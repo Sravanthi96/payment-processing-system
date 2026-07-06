@@ -1,163 +1,199 @@
-# Payment Processing System
+# Payment Processing Service
 
 ## Overview
 
-The Payment Processing System is a backend application designed to simulate a real-world payment gateway. It demonstrates how modern payment services process transactions securely, reliably, and at scale while maintaining data consistency and fault tolerance.
+The **Payment Processing Service** is an event-driven backend application that simulates a real-world payment gateway. The service consumes **OrderCreated** events from Apache Kafka, processes payments asynchronously, and publishes **PaymentSuccess** or **PaymentFailed** events for downstream services.
 
-The project was built to showcase backend engineering principles such as RESTful API design, transaction management, concurrency handling, idempotency, exception handling, and scalable application architecture.
+The application demonstrates how modern microservices communicate using asynchronous messaging to build scalable, loosely coupled, and fault-tolerant distributed systems.
 
 ---
 
 ## Features
 
-* Create and process payment requests
-* Validate payment details
-* Support multiple payment statuses
-* Prevent duplicate payment processing using idempotency
-* Robust exception handling and validation
-* RESTful APIs for payment operations
-* Layered architecture following Spring Boot best practices
-* Centralized logging for request tracking
-* Database persistence using JPA/Hibernate
-* Unit and integration testing
+* Event-driven payment processing
+* Consumes **OrderCreated** events from Apache Kafka
+* Simulates payment gateway authorization
+* Publishes **PaymentSuccess** and **PaymentFailed** events
+* Asynchronous communication using Kafka
+* REST APIs for payment operations
+* Layered architecture using Spring Boot
+* Persistent payment records using PostgreSQL
+* Centralized exception handling and logging
+* Containerized development environment using Docker
 
 ---
 
 ## Technology Stack
 
-* Java 21
-* Spring Boot
-* Spring Data JPA
-* Hibernate
-* REST APIs
-* Maven
-* MySQL (or PostgreSQL)
-* JUnit 5
-* Mockito
-* Lombok
-* Docker *(if applicable)*
+| Technology      | Purpose                  |
+| --------------- | ------------------------ |
+| Java 25         | Programming Language     |
+| Spring Boot     | Backend Framework        |
+| Spring Data JPA | Database Access          |
+| Hibernate       | ORM                      |
+| Apache Kafka    | Event Streaming Platform |
+| PostgreSQL      | Database                 |
+| Maven           | Build Tool               |
+| Docker          | Containerization         |
 
 ---
 
-## Architecture
+## System Architecture
 
-The application follows a layered architecture:
-
+```text
+                   +----------------------+
+                   |     Order Service    |
+                   +----------------------+
+                              |
+                              | OrderCreated Event
+                              |
+                              v
+                    +------------------+
+                    |   Kafka Topic    |
+                    +------------------+
+                              |
+                              v
+          +-------------------------------------------+
+          |      Payment Processing Service           |
+          |-------------------------------------------|
+          | • Consume OrderCreated Event              |
+          | • Simulate Payment Gateway                |
+          | • Process Payment                         |
+          | • Persist Payment in PostgreSQL           |
+          | • Publish Payment Result                  |
+          +-------------------------------------------+
+                    |                       |
+                    |                       |
+          PaymentSuccess          PaymentFailed
+                    |                       |
+                    +-----------+-----------+
+                                |
+                           Kafka Topics
+                                |
+                                v
+                     Downstream Microservices
 ```
-Client
-   │
-REST Controller
-   │
-Service Layer
-   │
-Business Logic
-   │
-Repository Layer
-   │
-Database
-```
-
-Each layer has a single responsibility, making the application easy to maintain, test, and extend.
 
 ---
 
-## API Endpoints
+## Event Flow
 
-| Method | Endpoint       | Description              |
-| ------ | -------------- | ------------------------ |
-| POST   | /payments      | Create a payment         |
-| GET    | /payments/{id} | Retrieve payment details |
-| PUT    | /payments/{id} | Update payment status    |
-| DELETE | /payments/{id} | Cancel a payment         |
+1. The **Order Service** publishes an **OrderCreated** event to Kafka.
+2. The Payment Processing Service consumes the event.
+3. The service simulates payment authorization.
+4. Payment details are persisted in PostgreSQL.
+5. A **PaymentSuccess** or **PaymentFailed** event is published to Kafka.
+6. Other microservices consume these events to continue the business workflow.
+
+---
+
+## Kafka Topics
+
+### Consumed
+
+| Topic           | Description                               |
+| --------------- | ----------------------------------------- |
+| `order-created` | Published when a customer places an order |
+
+### Produced
+
+| Topic             | Description                                      |
+| ----------------- | ------------------------------------------------ |
+| `payment-success` | Published when payment is processed successfully |
+| `payment-failed`  | Published when payment processing fails          |
 
 ---
 
 ## Project Structure
 
-```
+```text
 src
  ├── controller
  ├── service
  ├── repository
  ├── entity
  ├── dto
- ├── exception
+ ├── kafka
+ │     ├── consumer
+ │     ├── producer
+ │     └── events
  ├── config
+ ├── exception
  └── util
 ```
 
 ---
 
-## How to Run
+## Running the Application
 
 ### Prerequisites
 
-* Java 21
+* Java 25
 * Maven
-* MySQL/PostgreSQL
-* Git
+* Docker
 
-### Steps
+### Start Infrastructure
 
-1. Clone the repository
-
-```bash
-git clone https://github.com/<your-username>/payment-processing-system.git
-```
-
-2. Navigate to the project directory
+Start PostgreSQL and Kafka using Docker.
 
 ```bash
-cd payment-processing-system
+docker compose up -d
 ```
 
-3. Configure the database credentials in `application.yml` or `application.properties`.
+### Build the Application
 
-4. Start the application
+```bash
+mvn clean install
+```
+
+### Run the Service
 
 ```bash
 mvn spring-boot:run
 ```
 
-The application will start on:
+---
 
-```
-http://localhost:8080
-```
+## Design Principles
+
+* Event-Driven Architecture
+* Asynchronous Messaging
+* Loose Coupling
+* Layered Architecture
+* Separation of Concerns
+* Fault-Tolerant Communication
+* Scalable Microservice Design
 
 ---
 
 ## Future Enhancements
 
-* Kafka-based event publishing
-* Redis caching
-* Payment refunds
-* Payment reconciliation
-* Distributed transactions
-* Rate limiting
-* JWT authentication
-* Docker Compose deployment
+* Idempotent payment processing
+* Retry mechanism with exponential backoff
+* Dead Letter Queue (DLQ)
+* Transactional Outbox Pattern
+* OpenAPI/Swagger documentation
+* Distributed tracing
+* Prometheus and Grafana monitoring
 * Kubernetes deployment
 * CI/CD pipeline
-* Prometheus and Grafana monitoring
 
 ---
 
-## Learning Outcomes
+## What This Project Demonstrates
 
-This project demonstrates:
-
-* Backend application development using Spring Boot
-* Clean architecture and separation of concerns
-* REST API design
-* Database design and persistence
-* Error handling
-* Transaction management
-* Scalable backend development practices
-* Writing maintainable and testable code
+* Java 25 backend development
+* Spring Boot microservices
+* Event-driven architecture
+* Apache Kafka producers and consumers
+* Asynchronous payment processing
+* PostgreSQL persistence
+* Docker-based local development
+* Clean architecture and enterprise backend design
+* Modern distributed systems development
 
 ---
 
 ## License
 
-This project is intended for learning, portfolio, and demonstration purposes.
+This project was developed as a portfolio project to demonstrate backend engineering, event-driven microservices, and distributed system design using Java 25, Spring Boot, Apache Kafka, PostgreSQL, and Docker.
