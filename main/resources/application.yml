@@ -1,0 +1,79 @@
+spring:
+  application:
+    name: payment-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/payments}
+    username: ${DB_USERNAME:payments}
+    password: ${DB_PASSWORD:payments}
+    hikari:
+      pool-name: payments-pool
+      maximum-pool-size: 10
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: payment-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.value.default.type: com.example.payment.event.OrderCreatedEvent
+        spring.json.use.type.headers: false
+        spring.json.trusted.packages: com.example.payment.event
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+    listener:
+      ack-mode: record
+      missing-topics-fatal: false
+
+app:
+  kafka:
+    topics:
+      order-created: order.created
+      payment-completed: payment.completed
+      payment-failed: payment.failed
+    partitions: 3
+    replicas: 1
+  payment:
+    # Simulated gateway: charges above this amount are declined as "limit exceeded".
+    gateway:
+      max-amount: 10000.00
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+
+server:
+  port: 8081
+
+logging:
+  level:
+    com.example.payment: INFO
+    org.apache.kafka: WARN
